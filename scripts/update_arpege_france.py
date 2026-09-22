@@ -60,7 +60,7 @@ except ImportError:  # pragma: no cover - modules toujours livrés ensemble
 
 
 LOGGER = logging.getLogger("arpege.france")
-PIPELINE_VERSION = "1.0.0"
+PIPELINE_VERSION = "1.0.1"
 GRAVITY_MS2 = 9.80665
 # Niveaux isobares réellement présents dans le paquet IP1 (100 à 1000 hPa,
 # vérifié le 08/09/2026 sur un fichier réel) : on ne retient que ceux utiles
@@ -973,12 +973,10 @@ class MapSampler:
         self.column_grid = np.broadcast_to(
             columns[None, :], (self.height, self.width)
         )
-        self.coverage = (
-            (self.row_grid >= 0)
-            & (self.row_grid <= grid.nj - 1)
-            & (self.column_grid >= 0)
-            & (self.column_grid <= grid.ni - 1)
-        )
+        self.periodic_longitude = grid.ni * grid.step >= 359.9
+        self.coverage = (self.row_grid >= 0) & (self.row_grid <= grid.nj - 1)
+        if not self.periodic_longitude:
+            self.coverage &= (self.column_grid >= 0) & (self.column_grid <= grid.ni - 1)
 
     def extract(self, gid: int, validator: NationalGrid) -> np.ndarray:
         validator.validate(gid)
@@ -990,7 +988,7 @@ class MapSampler:
             values,
             [self.row_grid, self.column_grid],
             order=1,
-            mode="constant",
+            mode="grid-wrap" if self.periodic_longitude else "constant",
             cval=np.nan,
             prefilter=False,
         ).astype(np.float32, copy=False)

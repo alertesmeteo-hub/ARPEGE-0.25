@@ -16,7 +16,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from arpege_maps import ArpegeMapRenderer  # noqa: E402
 from update_arpege_france import (  # noqa: E402
+    GridSpec,
     IncompleteRunError,
+    MapSampler,
     Resource,
     choose_resources,
     grid_index,
@@ -27,6 +29,23 @@ from update_arpege_france import (  # noqa: E402
 
 
 class ArpegePipelineTests(unittest.TestCase):
+    def test_map_sampler_wraps_across_zero_meridian(self) -> None:
+        grid = GridSpec(ni=4, nj=3, lat_first=90.0, lon_first=0.0, step=90.0)
+        with patch("update_arpege_france.DEFAULT_BOUNDS", {
+            "south": -1.0, "north": 1.0, "west": -45.0, "east": 45.0,
+        }):
+            sampler = MapSampler(3, 3, grid)
+        values = np.tile(np.asarray([10.0, 20.0, 30.0, 40.0]), (3, 1))
+        class GridValidator:
+            def validate(self, gid: int) -> None:
+                pass
+        with patch("update_arpege_france.codes_get_double_array", return_value=values.ravel()), patch(
+            "update_arpege_france.safe_get", return_value=None
+        ):
+            sampled = sampler.extract(0, GridValidator())
+        self.assertTrue(np.isfinite(sampled).all())
+        self.assertAlmostEqual(float(sampled[1, 0]), 25.0, places=1)
+
     @staticmethod
     def resource(group: str, lead: int, run: str) -> Resource:
         return Resource(
