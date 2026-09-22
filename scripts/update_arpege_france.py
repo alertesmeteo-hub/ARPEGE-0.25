@@ -575,7 +575,7 @@ def load_catalog(path: Path, grid: GridSpec = LEGACY_GRID) -> NationalCatalog:
             f"Nombre inattendu de départements métropolitains : {len(departments)}"
         )
     LOGGER.info(
-        "Catalogue ARPEGE : %s communes, %s points 1,3 km, %s départements",
+        "Catalogue ARPEGE : %s communes, %s points GLOB025, %s départements",
         len(raw_communes),
         len(model_indexes),
         len(departments),
