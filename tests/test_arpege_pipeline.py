@@ -115,7 +115,33 @@ class ArpegePipelineTests(unittest.TestCase):
         catalog = load_catalog(ROOT / "config" / "communes-france.json")
         self.assertEqual(catalog.commune_count, 34746)
         self.assertEqual(len(catalog.departments), 96)
-        self.assertGreater(len(catalog.model_indexes), 34000)
+        # Several communes share a 0.25-degree grid point. Count communes
+        # separately and verify every local/global point reference instead.
+        raw_communes = json.loads(
+            (ROOT / "config" / "communes-france.json").read_text(encoding="utf-8")
+        )["communes"]
+        expected_indexes = {grid_index(c[5], c[6])[0] for c in raw_communes}
+        self.assertEqual(catalog.model_indexes, sorted(expected_indexes))
+        self.assertEqual(
+            sum(len(d.communes) for d in catalog.departments.values()),
+            catalog.commune_count,
+        )
+        for department in catalog.departments.values():
+            for commune in department.communes:
+                point_id = commune[6]
+                self.assertGreaterEqual(point_id, 0)
+                self.assertLess(point_id, len(department.points))
+                point = department.points[point_id]
+                expected_index, latitude, longitude = grid_index(commune[4], commune[5])
+                self.assertEqual(point[0], expected_index)
+                self.assertEqual(
+                    catalog.model_indexes[department.global_point_ids[point_id]],
+                    expected_index,
+                )
+                self.assertAlmostEqual(point[1], latitude, places=5)
+                self.assertAlmostEqual(point[2], longitude, places=5)
+                self.assertLessEqual(abs(point[1] - commune[4]), 0.12500001)
+                self.assertLessEqual(abs(point[2] - commune[5]), 0.12500001)
         perpignan = next(
             commune
             for commune in catalog.departments["66"].communes
