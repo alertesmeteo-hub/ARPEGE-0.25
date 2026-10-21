@@ -23,6 +23,7 @@ from update_arpege_france import (  # noqa: E402
     choose_resources,
     grid_index,
     load_catalog,
+    message_field,
     transform_step,
     wait_for_complete_remote_run,
 )
@@ -152,6 +153,18 @@ class ArpegePipelineTests(unittest.TestCase):
         self.assertEqual(point[0], expected_index)
         self.assertAlmostEqual(point[1], latitude, places=5)
         self.assertAlmostEqual(point[2], longitude, places=5)
+
+    def test_glob025_total_precipitation_is_read(self) -> None:
+        # Les paquets SP1 mondiaux (GLOB025) n'ont que « tp » pour la pluie (pas « tirf ») : il doit être lu.
+        import eccodes
+
+        gid = eccodes.codes_grib_new_from_samples("GRIB2")
+        try:
+            eccodes.codes_set(gid, "productDefinitionTemplateNumber", 8)
+            eccodes.codes_set(gid, "shortName", "tp")
+            self.assertEqual(message_field(gid), "precipitation_total_mm")
+        finally:
+            eccodes.codes_release(gid)
 
     def test_accumulations_and_derived_pressure(self) -> None:
         shape = (2,)
