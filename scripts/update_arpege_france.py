@@ -60,7 +60,7 @@ except ImportError:  # pragma: no cover - modules toujours livrés ensemble
 
 
 LOGGER = logging.getLogger("arpege.france")
-PIPELINE_VERSION = "1.0.1"
+PIPELINE_VERSION = "1.0.2"
 GRAVITY_MS2 = 9.80665
 # Niveaux isobares réellement présents dans le paquet IP1 (100 à 1000 hPa,
 # vérifié le 08/09/2026 sur un fichier réel) : on ne retient que ceux utiles
@@ -878,6 +878,10 @@ def message_field(gid: int) -> str | None:
         "mcc": "cloud_mid_pct",
         "hcc": "cloud_high_pct",
         "tirf": "precipitation_total_mm",
+        # GLOB025 : les paquets SP1 mondiaux n'ont pas « tirf » (pluie seule) mais « tp » (précipitations totales,
+        # pluie et neige, kg/m² = mm, cumulées depuis le début du run, discipline 0 / catégorie 1 / n° 52) ; sans lui la
+        # pluie restait vide à toutes les échéances sauf +0 h (constaté le 21 oct. 2026 sur le run 00Z).
+        "tp": "precipitation_total_mm",
         "tsnowp": "snow_total_mm",
         "h": "altitude_m",
         # Ajoutés v1.1.0 : confirmés réellement présents dans SP1/SP2 par le
